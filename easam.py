@@ -48,20 +48,9 @@ class Easam(nn.Module):
         self.register_buffer("pixel_mean", torch.Tensor(pixel_mean).view(-1, 1, 1), False)
         self.register_buffer("pixel_std", torch.Tensor(pixel_std).view(-1, 1, 1), False)
 
-        # 提示编码器参数：【冻结】
+
         for param in self.prompt_encoder.parameters():
           param.requires_grad = False
-        # 掩码解码器参数：【冻结】
-        # for param in self.mask_decoder.parameters():
-        #   param.requires_grad = False
-        # for param in self.image_encoder.parameters():
-        #   param.requires_grad = False
-        # 遍历self.image_encoder的所有参数，named_parameters 方法返回一个生成器，它产生参数的名称（n）和参数的值（value）
-        # 下面冻结self.image_encoder 中除了特定层或模块之外的所有参数
-        # "cnn_embed", "post_pos_embed", "Adapter", "2.attn.rel_pos", "5.attn.rel_pos", "8.attn.rel_pos", "11.attn.rel_pos", "upneck"
-        # 这些是模型中需要微调或更新的特定部分。
-        # 优点：可以保留预训练模型的某些特征，同时只更新模型的其他部分，在迁移学习或微调预训练模型时非常有用，
-        #      它允许模型在新任务上进行适应，同时保留预训练任务的有用知识。
         for n, value in self.image_encoder.named_parameters():
           if "Adapter" not in n:
             value.requires_grad = False
@@ -152,15 +141,13 @@ class Easam(nn.Module):
                 }
             )
         return outputs
-    # 用于进行模型的前向传播
-    # 它接受输入图像（imgs）、点坐标（pt）、边界框（bbox）
     def forward(
         self,
         imgs: torch.Tensor,
         pt: Tuple[torch.Tensor, torch.Tensor],
         bbox: torch.Tensor=None, # b 4
     ) -> torch.Tensor:
-        # 根据图像编码器和提示编码器生成图像嵌入和提示编码
+
         imge, pred4, pred3, pred2, pred1, pred0= self.image_encoder(imgs)
         if len(pt[0].shape) == 3:
             se, de = self.prompt_encoder(
@@ -168,7 +155,7 @@ class Easam(nn.Module):
                           boxes=None,
                           masks=None,
                       ) # se:(1, 2, 256)
-            # 并使用掩码解码器预测掩码
+
             low_res_masks, _ = self.mask_decoder(
                       image_embeddings=imge,
                       image_pe=self.prompt_encoder.get_dense_pe(),
@@ -187,7 +174,6 @@ class Easam(nn.Module):
             return outputs
         else:
             low_res_masks, masks = [], []
-            # 逐个处理点提示，并使用“prompt_encoder”和"mask_decoder"生成掩码
             for i in range(pt[0].shape[1]):
                 pti = (pt[0][:, i, :, :], pt[1][:, i, :])
                 sei, dei = self.prompt_encoder(  # se b 2 256, de b 256 32 32
@@ -207,10 +193,8 @@ class Easam(nn.Module):
                 masks.append(masksi)
         low_res_masks = torch.stack(low_res_masks, dim=1)
         masks = torch.stack(masks, dim=1)  # b c 1 255 255
-        # 使用reshape改变masks 张量的形状，-1 表示自动计算该维度的大小以保持张量的总元素数量不变
         masks = masks.reshape(masks.shape[0], -1, masks.shape[3], masks.shape[4])  # b，c，255,255
         low_res_masks = low_res_masks.reshape(low_res_masks.shape[0], -1, low_res_masks.shape[3], low_res_masks.shape[4])
-        # 返回一个包含所有低分辨率掩码和调整分辨率后的掩码的输出字典
         outputs = {"low_res_logits": low_res_masks, "masks": masks}
         return outputs
 
