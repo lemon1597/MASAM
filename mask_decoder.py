@@ -99,13 +99,12 @@ class MaskDecoder(nn.Module):
 
         # Select the correct mask or masks for output
         if multimask_output:
-            # ÇĞÆ¬È«²¿
-            mask_slice = slice(1, None) # ´ÓË÷Òı 1 µ½×îºóÒ»¸öÔªËØµÄÇĞÆ¬¡£ÕâÒâÎ¶×ÅÎÒÃÇÏëÒªÑ¡Ôñ³ıµÚÒ»¸öÔªËØÖ®ÍâµÄËùÓĞÑÚÂë
+            mask_slice = slice(1, None) 
         else:
-            # ÇĞÆ¬ 0 µ½ 1
-            mask_slice = slice(0, 1) # ´ÓË÷Òı 0 µ½Ë÷Òı 1 µÄÇĞÆ¬¡£ÕâÒâÎ¶×ÅÎÒÃÇÖ»ÏëÒªÑ¡ÔñµÚÒ»¸öÑÚÂë£¬Í¨³£ÊÇ×îÖÕµÄÔ¤²âÑÚÂë¡£
+            # åˆ‡ç‰‡ 0 åˆ° 1
+            mask_slice = slice(0, 1) 
         # B,mask_slice,256,256
-        masks = masks[:, mask_slice, :, :] # ÕâĞĞ´úÂëÊ¹ÓÃÇ°Ãæ¶¨ÒåµÄ mask_slice À´´Ó masks ÕÅÁ¿ÖĞÑ¡ÔñÕıÈ·µÄÑÚÂë»òÑÚÂëÇĞÆ¬¡£masks ÕÅÁ¿µÄĞÎ×´¿ÉÄÜÊÇ (batch_size, num_masks, height, width)£¬ÆäÖĞ batch_size ÊÇÅú´Î´óĞ¡£¬num_masks ÊÇÑÚÂëÊıÁ¿£¬height ºÍ width ÊÇÑÚÂëµÄ¸ß¶ÈºÍ¿í¶È¡£
+        masks = masks[:, mask_slice, :, :] 
         # B,mask_slice
         iou_pred = iou_pred[:, mask_slice]
 
